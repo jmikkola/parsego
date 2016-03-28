@@ -41,3 +41,11 @@ func TestMaybe1(t *testing.T) {
 	_, err2 := parser.ParseString(parser.Many1(parser.Digit()), "xxx")
 	assert.Error(t, err2, "Expected an error when the character doesn't match")
 }
+
+func TestAlphaNum(t *testing.T) {
+	expectParses(t, parser.AlphaNum(), "A")
+	expectParses(t, parser.AlphaNum(), "a")
+	expectParses(t, parser.AlphaNum(), "9")
+	expectFails(t, parser.AlphaNum(), "-")
+	expectFails(t, parser.AlphaNum(), ".")
+}

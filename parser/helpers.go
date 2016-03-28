@@ -12,6 +12,14 @@ func UpperLetter() Parser {
 	return CharRange('A', 'Z')
 }
 
+func Letter() Parser {
+	return Or(LowerLetter(), UpperLetter())
+}
+
+func AlphaNum() Parser {
+	return Or(LowerLetter(), UpperLetter(), Digit())
+}
+
 // Many1 makes 1+ occurrences
 func Many1(inner Parser) Parser {
 	return Sequence(inner, Many(inner))

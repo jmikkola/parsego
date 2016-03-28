@@ -1,7 +1,6 @@
 package parser
 
 import (
-//	"fmt"
 	"io"
 )
 
@@ -35,7 +34,7 @@ func RBSFromString(s string) *RuneBacktrackingScanner {
 		runes:        []rune(s),
 		pos:          0,
 		recordOffset: 0,
-		recording: false,
+		recording:    false,
 	}
 }
 
@@ -44,7 +43,6 @@ func (s *RuneBacktrackingScanner) Read() (rune, error) {
 		return 0, &EOFError{}
 	}
 	r := s.runes[s.pos]
-//	fmt.Printf("reading %c\n", r)
 	s.pos++
 	return r, nil
 }
