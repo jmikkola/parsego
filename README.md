@@ -26,4 +26,6 @@ func main() {
 }
 ```
 
+See examples/ for more examples.
+
 See also `parser.ParseScanner()` for parsing larger input.
