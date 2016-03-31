@@ -20,7 +20,7 @@ func (r *SuccessResult) Matched() bool {
 	return true
 }
 
-// Result retuns the parsed value (usually a string).
+// Result returns the parsed value (usually a string).
 func (r *SuccessResult) Result() interface{} {
 	return r.result
 }
@@ -48,7 +48,7 @@ func (r *FailedResult) Matched() bool {
 	return false
 }
 
-// Result retuns the parsed value (always nil, in this case).
+// Result returns the parsed value (always nil, in this case).
 func (r *FailedResult) Result() interface{} {
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Parser defines the interface implemented by all combinable parsers.
 type Parser interface {
 	Parse(sc Scanner) ParseResult
 }
@@ -16,12 +17,15 @@ func fail(at TextPos, format string, a ...interface{}) ParseResult {
 	}
 }
 
+// EOFParser expects just EOF.
 type EOFParser struct{}
 
+// EOF returns a parser that expects just EOF.
 func EOF() Parser {
 	return &EOFParser{}
 }
 
+// Parse parses the input.
 func (p *EOFParser) Parse(sc Scanner) ParseResult {
 	r, err := sc.Read()
 	if err == nil {
@@ -33,19 +37,24 @@ func (p *EOFParser) Parse(sc Scanner) ParseResult {
 	}
 }
 
+// CharRangeParser parses any single character in a range, inclusive.
 type CharRangeParser struct {
 	min rune // both inclusive
 	max rune
 }
 
+// Char returns a parser that parses a single occurance of that rune.
 func Char(c rune) Parser {
 	return &CharRangeParser{c, c}
 }
 
+// CharRange returns a parser that parses a single occurance of any
+// rune in the given range, inclusive.
 func CharRange(min, max rune) Parser {
 	return &CharRangeParser{min, max}
 }
 
+// Parse parses the input.
 func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
 	start := sc.GetPos()
 	r, err := sc.Read()
@@ -61,15 +70,18 @@ func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
 	}
 }
 
-// TokenParser works like a series of CharRangeParsers, but is more efficient
+// TokenParser works like a series of CharRangeParsers, but is more
+// efficient.
 type TokenParser struct {
 	token string
 }
 
+// Token returns a parser that parses the exact string given.
 func Token(token string) Parser {
 	return &TokenParser{token}
 }
 
+// Parse parses the input.
 func (p *TokenParser) Parse(sc Scanner) ParseResult {
 	start := sc.GetPos()
 	seen := []rune{}
@@ -89,10 +101,13 @@ func (p *TokenParser) Parse(sc Scanner) ParseResult {
 	}
 }
 
+// CharSetParser parses any single character in the set.
 type CharSetParser struct {
 	allowed map[rune]struct{}
 }
 
+// AnyCharIn returns a parser that parses a single occurance of any
+// rune in the given string.
 func AnyCharIn(s string) Parser {
 	allowed := make(map[rune]struct{}, len(s))
 	for _, r := range s {
@@ -101,6 +116,8 @@ func AnyCharIn(s string) Parser {
 	return &CharSetParser{allowed}
 }
 
+// AnyChar returns a parser that parses a single occurance of any rune
+// given.
 func AnyChar(rs ...rune) Parser {
 	allowed := make(map[rune]struct{}, len(rs))
 	for _, r := range rs {
@@ -109,6 +126,7 @@ func AnyChar(rs ...rune) Parser {
 	return &CharSetParser{allowed}
 }
 
+// Parse parses the input.
 func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	start := sc.GetPos()
 	r, err := sc.Read()
@@ -124,14 +142,18 @@ func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	}
 }
 
+// SeqParser combines multiple parsers in sequence.
 type SeqParser struct {
 	parsers []Parser
 }
 
+// Sequence returns a parser that runs each given parser in series and
+// combines the result.
 func Sequence(parsers ...Parser) Parser {
 	return &SeqParser{parsers}
 }
 
+// Parse parses the input.
 func (p *SeqParser) Parse(sc Scanner) ParseResult {
 	var textRange TextRange
 	textRange.start = sc.GetPos()
@@ -176,15 +198,19 @@ func cleanupResult(results []interface{}) interface{} {
 	return results
 }
 
+// Wrapper modifies the result of a parser with a function.
 type Wrapper struct {
 	inner Parser
 	fn    func(interface{}) interface{}
 }
 
+// ParseWith returns a parser that will apply the given function to
+// the result of parsing, if the parser was successful.
 func ParseWith(p Parser, fn func(interface{}) interface{}) Parser {
 	return &Wrapper{inner: p, fn: fn}
 }
 
+// Parse parses the input.
 func (p *Wrapper) Parse(sc Scanner) ParseResult {
 	innerResult := p.inner.Parse(sc)
 	if innerResult.Matched() {
@@ -196,14 +222,19 @@ func (p *Wrapper) Parse(sc Scanner) ParseResult {
 	return innerResult
 }
 
+// MaybeParser tries to run the inner parser, but allows the inner
+// parser to fail.
 type MaybeParser struct {
 	inner Parser
 }
 
+// Maybe returns a parser that parses 0 or 1 occurances of the given
+// parser.
 func Maybe(inner Parser) Parser {
 	return &MaybeParser{inner}
 }
 
+// Parse parses the input.
 func (p *MaybeParser) Parse(sc Scanner) ParseResult {
 	sc.StartSnapshot()
 
@@ -226,10 +257,13 @@ type ManyParser struct {
 	inner Parser
 }
 
+// Many returns a parser that matches the given parser zero or more
+// times, and combines the results.
 func Many(inner Parser) Parser {
 	return &ManyParser{inner}
 }
 
+// Parse parses the input.
 func (p *ManyParser) Parse(sc Scanner) ParseResult {
 	var textRange TextRange
 	textRange.start = sc.GetPos()
@@ -255,14 +289,18 @@ func (p *ManyParser) Parse(sc Scanner) ParseResult {
 	}
 }
 
+// OrParser parses at most one of the inner parses.
 type OrParser struct {
 	parsers []Parser
 }
 
+// Or returns a parser that accepts the union of the languages
+// accepted by the given parsers.
 func Or(parsers ...Parser) Parser {
 	return &OrParser{parsers}
 }
 
+// Parse parses the input.
 func (p *OrParser) Parse(sc Scanner) ParseResult {
 	for _, inner := range p.parsers {
 		sc.StartSnapshot()
