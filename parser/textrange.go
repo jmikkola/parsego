@@ -38,7 +38,6 @@ func (pos TextPos) AdvanceLine() TextPos {
 func (pos TextPos) Advance(c rune) TextPos {
 	if c == '\n' {
 		return pos.AdvanceLine()
-	} else {
-		return pos.AdvanceCol()
 	}
+	return pos.AdvanceCol()
 }

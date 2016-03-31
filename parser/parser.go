@@ -27,7 +27,7 @@ func (p *EOFParser) Parse(sc Scanner) ParseResult {
 	if err == nil {
 		return fail(sc.GetPos(), "expected EOF, got %c", r)
 	}
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: TextRange{sc.GetPos(), sc.GetPos()},
 		result:    "",
 	}
@@ -55,7 +55,7 @@ func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
 	if r < p.min || r > p.max {
 		return fail(sc.GetPos(), "expected a character in the range, got error %c", r)
 	}
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: TextRange{start, sc.GetPos()},
 		result:    r,
 	}
@@ -83,7 +83,7 @@ func (p *TokenParser) Parse(sc Scanner) ParseResult {
 			return fail(sc.GetPos(), "expected '%s', got '%s'", p.token, string(seen))
 		}
 	}
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: TextRange{start, sc.GetPos()},
 		result:    string(seen),
 	}
@@ -118,7 +118,7 @@ func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	if _, ok := p.allowed[r]; !ok {
 		return fail(sc.GetPos(), "expected a character in the set, got error %c", r)
 	}
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: TextRange{start, sc.GetPos()},
 		result:    r,
 	}
@@ -148,7 +148,7 @@ func (p *SeqParser) Parse(sc Scanner) ParseResult {
 		results = append(results, innerResult.Result())
 	}
 
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: textRange,
 		result:    cleanupResult(results),
 	}
@@ -188,13 +188,12 @@ func ParseWith(p Parser, fn func(interface{}) interface{}) Parser {
 func (p *Wrapper) Parse(sc Scanner) ParseResult {
 	innerResult := p.inner.Parse(sc)
 	if innerResult.Matched() {
-		return &SuccessRusult{
+		return &SuccessResult{
 			textRange: innerResult.TextRange(),
 			result:    p.fn(innerResult.Result()),
 		}
-	} else {
-		return innerResult
 	}
+	return innerResult
 }
 
 type MaybeParser struct {
@@ -216,7 +215,7 @@ func (p *MaybeParser) Parse(sc Scanner) ParseResult {
 
 	sc.RewindSnapshot()
 	start := sc.GetPos()
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: TextRange{start, start},
 		result:    "",
 	}
@@ -250,7 +249,7 @@ func (p *ManyParser) Parse(sc Scanner) ParseResult {
 	}
 
 	textRange.end = sc.GetPos()
-	return &SuccessRusult{
+	return &SuccessResult{
 		textRange: textRange,
 		result:    cleanupResult(results),
 	}
@@ -272,9 +271,8 @@ func (p *OrParser) Parse(sc Scanner) ParseResult {
 		if innerResult.Matched() {
 			sc.PopSnapshot()
 			return innerResult
-		} else {
-			sc.RewindSnapshot()
 		}
+		sc.RewindSnapshot()
 	}
 
 	return fail(sc.GetPos(), "no parser matched")
