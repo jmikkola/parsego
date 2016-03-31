@@ -43,12 +43,12 @@ type CharRangeParser struct {
 	max rune
 }
 
-// Char returns a parser that parses a single occurance of that rune.
+// Char returns a parser that parses a single occurrence of that rune.
 func Char(c rune) Parser {
 	return &CharRangeParser{c, c}
 }
 
-// CharRange returns a parser that parses a single occurance of any
+// CharRange returns a parser that parses a single occurrence of any
 // rune in the given range, inclusive.
 func CharRange(min, max rune) Parser {
 	return &CharRangeParser{min, max}
@@ -106,7 +106,7 @@ type CharSetParser struct {
 	allowed map[rune]struct{}
 }
 
-// AnyCharIn returns a parser that parses a single occurance of any
+// AnyCharIn returns a parser that parses a single occurrence of any
 // rune in the given string.
 func AnyCharIn(s string) Parser {
 	allowed := make(map[rune]struct{}, len(s))
@@ -116,7 +116,7 @@ func AnyCharIn(s string) Parser {
 	return &CharSetParser{allowed}
 }
 
-// AnyChar returns a parser that parses a single occurance of any rune
+// AnyChar returns a parser that parses a single occurrence of any rune
 // given.
 func AnyChar(rs ...rune) Parser {
 	allowed := make(map[rune]struct{}, len(rs))
@@ -228,7 +228,7 @@ type MaybeParser struct {
 	inner Parser
 }
 
-// Maybe returns a parser that parses 0 or 1 occurances of the given
+// Maybe returns a parser that parses 0 or 1 occurrences of the given
 // parser.
 func Maybe(inner Parser) Parser {
 	return &MaybeParser{inner}
