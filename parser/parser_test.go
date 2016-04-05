@@ -19,7 +19,7 @@ func TestParseEOF(t *testing.T) {
 func TestAnyChar(t *testing.T) {
 	result, err := parser.ParseString(parser.AnyChar('a', '\n', '☃'), "☃")
 	assert.NoError(t, err, "Expected successful parse")
-	assert.Equal(t, '☃', result)
+	assert.Equal(t, "☃", result)
 
 	_, err2 := parser.ParseString(parser.AnyChar('a', '\n', '☃'), "x")
 	assert.Error(t, err2, "Expected an error when the character doesn't match")
@@ -31,13 +31,13 @@ func TestAnyChar(t *testing.T) {
 func TestAnyCharIn(t *testing.T) {
 	result, err := parser.ParseString(parser.AnyCharIn("a\n☃"), "☃")
 	assert.NoError(t, err, "Expected successful parse")
-	assert.Equal(t, '☃', result)
+	assert.Equal(t, "☃", result)
 }
 
 func TestChar(t *testing.T) {
 	result, err := parser.ParseString(parser.Char('☃'), "☃")
 	assert.NoError(t, err, "Expected successful parse")
-	assert.Equal(t, '☃', result)
+	assert.Equal(t, "☃", result)
 
 	_, err2 := parser.ParseString(parser.Char('☃'), "x")
 	assert.Error(t, err2, "Expected an error when the character doesn't match")
@@ -49,7 +49,7 @@ func TestChar(t *testing.T) {
 func TestCharRange(t *testing.T) {
 	result, err := parser.ParseString(parser.CharRange('0', '9'), "5")
 	assert.NoError(t, err, "Expected successful parse")
-	assert.Equal(t, '5', result)
+	assert.Equal(t, "5", result)
 
 	_, err2 := parser.ParseString(parser.CharRange('0', '9'), "x")
 	assert.Error(t, err2, "Expected an error when the character doesn't match")
@@ -125,4 +125,35 @@ func TestOr(t *testing.T) {
 
 	_, err2 := parser.ParseString(p, "foo")
 	assert.Error(t, err2, "Expected error when no options match")
+}
+
+func TestMany(t *testing.T) {
+	p := parser.Many(parser.Digit())
+
+	result, err := parser.ParseString(p, "1234x")
+	assert.NoError(t, err, "Expected successful parse")
+	assert.Equal(t, "1234", result)
+}
+
+func TestListOf(t *testing.T) {
+	p := parser.ListOf(parser.Digit())
+
+	result, err := parser.ParseString(p, "1234x")
+	assert.NoError(t, err, "Expected successful parse")
+	assert.Equal(t, []interface{}{"1", "2", "3", "4"}, result)
+}
+
+func TestMap(t *testing.T) {
+	p := parser.Map([]parser.Named{
+		{"value", parser.Many(parser.Letter())},
+		{"", parser.Char('[')},
+		{"index", parser.Many(parser.Digit())},
+		{"", parser.Char(']')},
+	}, func(m map[string]interface{}) interface{} {
+		return []interface{}{m["value"], m["index"]}
+	})
+
+	result, err := parser.ParseString(p, "myVar[123]")
+	assert.NoError(t, err, "Expected successful parse")
+	assert.Equal(t, []interface{}{"myVar", "123"}, result)
 }

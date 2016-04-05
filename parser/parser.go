@@ -66,7 +66,7 @@ func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
 	}
 	return &SuccessResult{
 		textRange: TextRange{start, sc.GetPos()},
-		result:    r,
+		result:    string(r),
 	}
 }
 
@@ -138,7 +138,7 @@ func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	}
 	return &SuccessResult{
 		textRange: TextRange{start, sc.GetPos()},
-		result:    r,
+		result:    string(r),
 	}
 }
 
@@ -183,9 +183,7 @@ func cleanupResult(results []interface{}) interface{} {
 		if result == "" {
 			continue
 		}
-		if r, ok := result.(rune); ok {
-			buffer.WriteRune(r)
-		} else if s, ok := result.(string); ok {
+		if s, ok := result.(string); ok {
 			buffer.WriteString(s)
 		} else {
 			allStr = false
@@ -254,13 +252,20 @@ func (p *MaybeParser) Parse(sc Scanner) ParseResult {
 
 // ManyParser Matches 0+ occurrences
 type ManyParser struct {
-	inner Parser
+	inner   Parser
+	combine bool
+}
+
+// ListOf returns a parser that matches the given parser zero or more
+// times, and returns a list of the results.
+func ListOf(inner Parser) Parser {
+	return &ManyParser{inner: inner, combine: false}
 }
 
 // Many returns a parser that matches the given parser zero or more
 // times, and combines the results.
 func Many(inner Parser) Parser {
-	return &ManyParser{inner}
+	return &ManyParser{inner: inner, combine: true}
 }
 
 // Parse parses the input.
@@ -282,10 +287,17 @@ func (p *ManyParser) Parse(sc Scanner) ParseResult {
 		}
 	}
 
+	var output interface{}
+	if p.combine {
+		output = cleanupResult(results)
+	} else {
+		output = results
+	}
+
 	textRange.end = sc.GetPos()
 	return &SuccessResult{
 		textRange: textRange,
-		result:    cleanupResult(results),
+		result:    output,
 	}
 }
 
@@ -314,4 +326,47 @@ func (p *OrParser) Parse(sc Scanner) ParseResult {
 	}
 
 	return fail(sc.GetPos(), "no parser matched")
+}
+
+// Named is used for arguments to Map
+type Named struct {
+	Name   string
+	Parser Parser
+}
+
+type MapParser struct {
+	parsers []Named
+	fn      func(map[string]interface{}) interface{}
+}
+
+func Map(parsers []Named, fn func(map[string]interface{}) interface{}) Parser {
+	return &MapParser{
+		parsers: parsers,
+		fn:      fn,
+	}
+}
+
+func (p *MapParser) Parse(sc Scanner) ParseResult {
+	parsed := map[string]interface{}{}
+
+	var textRange TextRange
+	textRange.start = sc.GetPos()
+
+	for _, named := range p.parsers {
+		innerResult := named.Parser.Parse(sc)
+		if !innerResult.Matched() {
+			return innerResult
+		}
+
+		if named.Name != "" {
+			parsed[named.Name] = innerResult.Result()
+		}
+	}
+
+	textRange.end = sc.GetPos()
+
+	return &SuccessResult{
+		textRange: textRange,
+		result:    p.fn(parsed),
+	}
 }
