@@ -1,6 +1,6 @@
 # parsego
 
-[![Build Status](https://travis-ci.org/jmikkola/parsego.svg?branch=master)](https://travis-ci.org/jmikkola/parsego) [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://godoc.org/github.com/jmikkola/parsego/parser)
+[![License][License-Image]][License-URL] [![ReportCard][ReportCard-Image]][ReportCard-URL] [![Build Status](https://travis-ci.org/jmikkola/parsego.svg?branch=master)](https://travis-ci.org/jmikkola/parsego) [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://godoc.org/github.com/jmikkola/parsego/parser)
 
 A poorly-designed parser combinator in Go.
 
