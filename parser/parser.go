@@ -109,7 +109,7 @@ func AnyChar(rs ...rune) Parser {
 	return &CharSetParser{allowed: rarray2rmap(rs), invert: false}
 }
 
-// AnyChar returns a parser that parses a single occurrence of any rune
+// NoneOf returns a parser that parses a single occurrence of any rune
 // other than the ones given.
 func NoneOf(rs ...rune) Parser {
 	return &CharSetParser{allowed: rarray2rmap(rs), invert: true}
@@ -121,7 +121,7 @@ func AnyCharIn(s string) Parser {
 	return &CharSetParser{allowed: s2runemap(s), invert: false}
 }
 
-// AnyCharIn returns a parser that parses a single occurrence of any
+// AnyCharNotIn returns a parser that parses a single occurrence of any
 // rune other than the ones in the given string.
 func AnyCharNotIn(s string) Parser {
 	return &CharSetParser{allowed: s2runemap(s), invert: true}
@@ -370,20 +370,20 @@ func (p *MapParser) Parse(sc scanner.Scanner) result.ParseResult {
 	return result.Success(textpos.Range(start, sc.GetPos()), p.fn(parsed))
 }
 
-// ParserFn contains a function that lazily constructs the real
+// LazyFn contains a function that lazily constructs the real
 // parser. Useful for constructing recursive parsers.
-type ParserFn struct {
+type LazyFn struct {
 	fn func() Parser
 }
 
 // Lazy builds a lazily defined parser by calling the given function
 // only when the parser is actually used.
 func Lazy(fn func() Parser) Parser {
-	return &ParserFn{fn}
+	return &LazyFn{fn}
 }
 
 // Parse parses the input.
-func (p *ParserFn) Parse(sc scanner.Scanner) result.ParseResult {
+func (p *LazyFn) Parse(sc scanner.Scanner) result.ParseResult {
 	actual := p.fn()
 	return actual.Parse(sc)
 }

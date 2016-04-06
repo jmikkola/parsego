@@ -90,19 +90,19 @@ func (s *RuneBacktrackingScanner) BufSize() int {
 	return 0
 }
 
-// ScannerBacktrackingScanner implements BacktrackingScanner for an
+// Backtracking implements BacktrackingScanner for an
 // io.RuneReader.
-type ScannerBacktrackingScanner struct {
+type Backtracking struct {
 	wrapped      io.RuneReader
 	buffer       []rune
 	bufferOffset int
 	recording    bool
 }
 
-// SBSFromReader creates a ScannerBacktrackingScanner from an
+// SBSFromReader creates a Backtracking from an
 // io.RuneReader.
-func SBSFromReader(reader io.RuneReader) *ScannerBacktrackingScanner {
-	return &ScannerBacktrackingScanner{
+func SBSFromReader(reader io.RuneReader) *Backtracking {
+	return &Backtracking{
 		wrapped:      reader,
 		buffer:       []rune{},
 		bufferOffset: 0,
@@ -111,7 +111,7 @@ func SBSFromReader(reader io.RuneReader) *ScannerBacktrackingScanner {
 }
 
 // Read a rune if one is available, otherwise return an EOFError.
-func (s *ScannerBacktrackingScanner) Read() (rune, error) {
+func (s *Backtracking) Read() (rune, error) {
 	r, _, err := s.wrapped.ReadRune()
 	if err != nil {
 		return 0, err
@@ -124,25 +124,25 @@ func (s *ScannerBacktrackingScanner) Read() (rune, error) {
 
 // StartBuffer starts recording runs returned from Read() into the
 // buffer, if not already recording.
-func (s *ScannerBacktrackingScanner) StartBuffer() {
+func (s *Backtracking) StartBuffer() {
 	s.recording = true
 }
 
 // ReadBuffer reads a buffered rune out of a buffer. The buffer is
 // empty unless StartBuffer() then one or more calls to Read()
 // happens.
-func (s *ScannerBacktrackingScanner) ReadBuffer(bufIdx int) rune {
+func (s *Backtracking) ReadBuffer(bufIdx int) rune {
 	return s.buffer[bufIdx]
 }
 
 // DropBuffer stops recording and empties the buffer.
-func (s *ScannerBacktrackingScanner) DropBuffer() {
+func (s *Backtracking) DropBuffer() {
 	s.buffer = []rune{}
 	s.recording = false
 }
 
 // BufSize returns the current size of the buffer.
-func (s *ScannerBacktrackingScanner) BufSize() int {
+func (s *Backtracking) BufSize() int {
 	return len(s.buffer)
 }
 

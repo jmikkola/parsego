@@ -63,25 +63,25 @@ func Pos(line, col int) TextPos {
 }
 
 // AdvanceCol return a new TextPos with the column advanced by one.
-func (pos TextPos) AdvanceCol() TextPos {
+func (t TextPos) AdvanceCol() TextPos {
 	return TextPos{
-		col:  pos.col + 1,
-		line: pos.line,
+		col:  t.col + 1,
+		line: t.line,
 	}
 }
 
 // AdvanceLine returns a new TextPos with the line advanced by one.
-func (pos TextPos) AdvanceLine() TextPos {
+func (t TextPos) AdvanceLine() TextPos {
 	return TextPos{
 		col:  0,
-		line: pos.line + 1,
+		line: t.line + 1,
 	}
 }
 
 // Advance returns a new TextPos advanced by the given character.
-func (pos TextPos) Advance(c rune) TextPos {
+func (t TextPos) Advance(c rune) TextPos {
 	if c == '\n' {
-		return pos.AdvanceLine()
+		return t.AdvanceLine()
 	}
-	return pos.AdvanceCol()
+	return t.AdvanceCol()
 }
