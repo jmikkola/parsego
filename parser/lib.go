@@ -1,3 +1,20 @@
+/*
+Package parser defines methods for building an running parser combinators.
+
+For actually running the resulting parsers, check out ParseScanner and ParseString.
+
+For building parsers, look at any method returning a Parser.
+
+Example usage:
+
+    p := parser.Sequence(
+        parser.Digits(),
+        parser.Maybe(
+            parser.Sequence(
+                parser.Char('.'),
+                parser.Digits())))
+    result, err := parser.ParseString(p, "1234.567")
+*/
 package parser
 
 import (
