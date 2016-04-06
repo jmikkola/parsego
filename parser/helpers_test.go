@@ -49,3 +49,18 @@ func TestAlphaNum(t *testing.T) {
 	expectFails(t, parser.AlphaNum(), "-")
 	expectFails(t, parser.AlphaNum(), ".")
 }
+
+func TestManySepBy(t *testing.T) {
+	p := parser.ManySepBy(parser.Digits(), parser.Whitespace1())
+	result1, err1 := parser.ParseString(p, "")
+	assert.NoError(t, err1, "Expected successful parse")
+	assert.Equal(t, []interface{}{}, result1)
+
+	result2, err2 := parser.ParseString(p, "1234")
+	assert.NoError(t, err2, "Expected successful parse")
+	assert.Equal(t, []interface{}{"1234"}, result2)
+
+	result3, err3 := parser.ParseString(p, "12 34   56")
+	assert.NoError(t, err3, "Expected successful parse")
+	assert.Equal(t, []interface{}{"12", "34", "56"}, result3)
+}

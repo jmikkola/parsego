@@ -104,26 +104,47 @@ func (p *TokenParser) Parse(sc Scanner) ParseResult {
 // CharSetParser parses any single character in the set.
 type CharSetParser struct {
 	allowed map[rune]struct{}
-}
-
-// AnyCharIn returns a parser that parses a single occurrence of any
-// rune in the given string.
-func AnyCharIn(s string) Parser {
-	allowed := make(map[rune]struct{}, len(s))
-	for _, r := range s {
-		allowed[r] = struct{}{}
-	}
-	return &CharSetParser{allowed}
+	invert  bool
 }
 
 // AnyChar returns a parser that parses a single occurrence of any rune
 // given.
 func AnyChar(rs ...rune) Parser {
-	allowed := make(map[rune]struct{}, len(rs))
-	for _, r := range rs {
-		allowed[r] = struct{}{}
+	return &CharSetParser{allowed: rarray2rmap(rs), invert: false}
+}
+
+// AnyChar returns a parser that parses a single occurrence of any rune
+// other than the ones given.
+func NoneOf(rs ...rune) Parser {
+	return &CharSetParser{allowed: rarray2rmap(rs), invert: true}
+}
+
+// AnyCharIn returns a parser that parses a single occurrence of any
+// rune in the given string.
+func AnyCharIn(s string) Parser {
+	return &CharSetParser{allowed: s2runemap(s), invert: false}
+}
+
+// AnyCharIn returns a parser that parses a single occurrence of any
+// rune other than the ones in the given string.
+func AnyCharNotIn(s string) Parser {
+	return &CharSetParser{allowed: s2runemap(s), invert: true}
+}
+
+func s2runemap(s string) map[rune]struct{} {
+	m := make(map[rune]struct{}, len(s))
+	for _, r := range s {
+		m[r] = struct{}{}
 	}
-	return &CharSetParser{allowed}
+	return m
+}
+
+func rarray2rmap(rs []rune) map[rune]struct{} {
+	m := make(map[rune]struct{}, len(rs))
+	for _, r := range rs {
+		m[r] = struct{}{}
+	}
+	return m
 }
 
 // Parse parses the input.
@@ -133,7 +154,7 @@ func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	if err != nil {
 		return fail(sc.GetPos(), "expected a character, got error %v", err)
 	}
-	if _, ok := p.allowed[r]; !ok {
+	if _, ok := p.allowed[r]; ok == p.invert {
 		return fail(sc.GetPos(), "expected a character in the set, got error %c", r)
 	}
 	return &SuccessResult{
@@ -334,11 +355,15 @@ type Named struct {
 	Parser Parser
 }
 
+// MapParser parses to a map of named components.
 type MapParser struct {
 	parsers []Named
 	fn      func(map[string]interface{}) interface{}
 }
 
+// Map builds a parser that parses the named components in series,
+// populating a map between the given names and the results of the
+// given parsers. The output of parsers named "" is ignored.
 func Map(parsers []Named, fn func(map[string]interface{}) interface{}) Parser {
 	return &MapParser{
 		parsers: parsers,
@@ -346,6 +371,7 @@ func Map(parsers []Named, fn func(map[string]interface{}) interface{}) Parser {
 	}
 }
 
+// Parse parses the input.
 func (p *MapParser) Parse(sc Scanner) ParseResult {
 	parsed := map[string]interface{}{}
 
@@ -369,4 +395,45 @@ func (p *MapParser) Parse(sc Scanner) ParseResult {
 		textRange: textRange,
 		result:    p.fn(parsed),
 	}
+}
+
+// ParserFn contains a function that lazily constructs the real
+// parser. Useful for constructing recursive parsers.
+type ParserFn struct {
+	fn func() Parser
+}
+
+// Lazy builds a lazily defined parser by calling the given function
+// only when the parser is actually used.
+func Lazy(fn func() Parser) Parser {
+	return &ParserFn{fn}
+}
+
+// Parse parses the input.
+func (p *ParserFn) Parse(sc Scanner) ParseResult {
+	actual := p.fn()
+	return actual.Parse(sc)
+}
+
+// IgnoreParser runs the inner parser, but then replaces the result
+// with "".
+type IgnoreParser struct {
+	inner Parser
+}
+
+// Ignore ignores the result of the given parser.
+func Ignore(inner Parser) Parser {
+	return &IgnoreParser{inner}
+}
+
+// Parse parses the input.
+func (p *IgnoreParser) Parse(sc Scanner) ParseResult {
+	result := p.inner.Parse(sc)
+	if result.Matched() {
+		return &SuccessResult{
+			textRange: result.TextRange(),
+			result:    "",
+		}
+	}
+	return result
 }

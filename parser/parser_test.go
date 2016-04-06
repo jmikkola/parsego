@@ -157,3 +157,13 @@ func TestMap(t *testing.T) {
 	assert.NoError(t, err, "Expected successful parse")
 	assert.Equal(t, []interface{}{"myVar", "123"}, result)
 }
+
+func TestIgnore(t *testing.T) {
+	p := parser.Sequence(
+		parser.Ignore(parser.Char('"')),
+		parser.Many(parser.NoneOf('"')),
+		parser.Ignore(parser.Char('"')))
+	result, err := parser.ParseString(p, `"some quoted string"`)
+	assert.NoError(t, err, "Expected successful parse")
+	assert.Equal(t, "some quoted string", result)
+}
