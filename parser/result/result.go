@@ -1,16 +1,25 @@
-package parser
+package result
+
+import (
+	"github.com/jmikkola/parsego/parser/textpos"
+)
 
 // ParseResult defines the values that can result from parsing.
 type ParseResult interface {
 	Matched() bool
 	Result() interface{}
-	TextRange() TextRange
+	TextRange() textpos.TextRange
 	Error() error
+}
+
+// Success returns a SuccessResult
+func Success(textRange textpos.TextRange, result interface{}) ParseResult {
+	return &SuccessResult{textRange, result}
 }
 
 // SuccessResult is returned by parsers on a successful parser.
 type SuccessResult struct {
-	textRange TextRange
+	textRange textpos.TextRange
 	result    interface{}
 }
 
@@ -26,7 +35,7 @@ func (r *SuccessResult) Result() interface{} {
 }
 
 // TextRange returns the range of text parsed.
-func (r *SuccessResult) TextRange() TextRange {
+func (r *SuccessResult) TextRange() textpos.TextRange {
 	return r.textRange
 }
 
@@ -38,8 +47,13 @@ func (r *SuccessResult) Error() error {
 // FailedResult is returned by parsers when they fail to parse the
 // input.
 type FailedResult struct {
-	textRange TextRange
+	textRange textpos.TextRange
 	err       error
+}
+
+// Failed returns a FailedResult
+func Failed(textRange textpos.TextRange, err error) ParseResult {
+	return &FailedResult{textRange, err}
 }
 
 // Matched returns whether the parser matched the input (false in this
@@ -54,7 +68,7 @@ func (r *FailedResult) Result() interface{} {
 }
 
 // TextRange returns the range of text parsed.
-func (r *FailedResult) TextRange() TextRange {
+func (r *FailedResult) TextRange() textpos.TextRange {
 	return r.textRange
 }
 

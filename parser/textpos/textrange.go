@@ -1,16 +1,52 @@
-package parser
+/*
+Package textpos contains immutable structures for working with
+positions in a text document.
+*/
+package textpos
 
 // TextPos is a single character position in some text. Both line and
 // col start from 0.
+//
+// Immutable data structures are somewhat inconvenient to write in Go.
 type TextPos struct {
 	line int
 	col  int
+}
+
+// Line returns the line number, starting at 0
+func (t TextPos) Line() int {
+	return t.line
+}
+
+// Col returns the column number within the line, starting at 0
+func (t TextPos) Col() int {
+	return t.col
 }
 
 // TextRange is an (inclusive) range between two TextPos.
 type TextRange struct {
 	start TextPos
 	end   TextPos
+}
+
+// Range constructs a new TextRange
+func Range(start, end TextPos) TextRange {
+	return TextRange{start, end}
+}
+
+// Single returns a single-character range.
+func Single(pos TextPos) TextRange {
+	return TextRange{pos, pos}
+}
+
+// Start returns the position of the first character in the range.
+func (t TextRange) Start() TextPos {
+	return t.start
+}
+
+// End returns the position of the last character in the range.
+func (t TextRange) End() TextPos {
+	return t.end
 }
 
 // StartingPos returns the 0 position.

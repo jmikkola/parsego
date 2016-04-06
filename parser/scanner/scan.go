@@ -1,7 +1,9 @@
-package parser
+package scanner
 
 import (
 	"io"
+
+	"github.com/jmikkola/parsego/parser/textpos"
 )
 
 // EOFError is returned when RuneBacktrackingScanner reaches the end of a string.
@@ -148,7 +150,7 @@ func (s *ScannerBacktrackingScanner) BufSize() int {
 // reading some input (with multiple levels of undo).
 type Scanner interface {
 	ReadRune
-	GetPos() TextPos
+	GetPos() textpos.TextPos
 	StartSnapshot()
 	RewindSnapshot()
 	PopSnapshot()
@@ -157,7 +159,7 @@ type Scanner interface {
 // Snapshot records the state of a snapshot taken by a scanner.
 type Snapshot struct {
 	buffOffset int
-	position   TextPos
+	position   textpos.TextPos
 	next       *Snapshot
 }
 
@@ -165,7 +167,7 @@ type Snapshot struct {
 // BacktrackingScanner.
 type RewindableScanner struct {
 	source      BacktrackingScanner
-	currentPos  TextPos
+	currentPos  textpos.TextPos
 	lastSnap    *Snapshot
 	isReplaying bool
 	replayPos   int
@@ -176,7 +178,7 @@ type RewindableScanner struct {
 func NewRewindableScanner(source BacktrackingScanner) *RewindableScanner {
 	return &RewindableScanner{
 		source:      source,
-		currentPos:  StartingPos(),
+		currentPos:  textpos.StartingPos(),
 		lastSnap:    nil,
 		isReplaying: false,
 		replayPos:   0,
@@ -215,7 +217,7 @@ func (s *RewindableScanner) Read() (rune, error) {
 
 // GetPos returns the position of the next character Read() will
 // return.
-func (s *RewindableScanner) GetPos() TextPos {
+func (s *RewindableScanner) GetPos() textpos.TextPos {
 	return s.currentPos
 }
 

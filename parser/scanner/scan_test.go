@@ -1,21 +1,22 @@
-package parser_test
+package scanner_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jmikkola/parsego/parser"
+	"github.com/jmikkola/parsego/parser/scanner"
+	"github.com/jmikkola/parsego/parser/textpos"
 )
 
-func assertReads(t *testing.T, sc parser.ReadRune, c rune) {
+func assertReads(t *testing.T, sc scanner.ReadRune, c rune) {
 	r, err := sc.Read()
 	assert.NoError(t, err, "Expected successful read")
 	assert.Equal(t, c, r, "Expected char")
 }
 
 func TestRBS(t *testing.T) {
-	sc := parser.RBSFromString("some text")
+	sc := scanner.RBSFromString("some text")
 	assertReads(t, sc, 's')
 	assertReads(t, sc, 'o')
 
@@ -36,78 +37,78 @@ func TestRBS(t *testing.T) {
 }
 
 func TestSimpleRewind(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 
-	assert.Equal(t, parser.Pos(0, 0), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 0), sc.GetPos())
 	assertReads(t, sc, 'a')
 	assertReads(t, sc, 'b')
-	assert.Equal(t, parser.Pos(0, 2), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 2), sc.GetPos())
 
 	sc.StartSnapshot()
 	assertReads(t, sc, 'c')
 	assertReads(t, sc, 'd')
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 
 	sc.RewindSnapshot()
-	assert.Equal(t, parser.Pos(0, 2), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 2), sc.GetPos())
 	assertReads(t, sc, 'c')
 	assertReads(t, sc, 'd')
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 }
 
 func TestSimplePop(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 
-	assert.Equal(t, parser.Pos(0, 0), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 0), sc.GetPos())
 	assertReads(t, sc, 'a')
 	assertReads(t, sc, 'b')
-	assert.Equal(t, parser.Pos(0, 2), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 2), sc.GetPos())
 
 	sc.StartSnapshot()
 	assertReads(t, sc, 'c')
 	assertReads(t, sc, 'd')
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 
 	sc.PopSnapshot()
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 	assertReads(t, sc, 'e')
 	assertReads(t, sc, 'f')
-	assert.Equal(t, parser.Pos(0, 6), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 6), sc.GetPos())
 }
 
 func TestRecursiveSnapshots(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 
-	assert.Equal(t, parser.Pos(0, 0), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 0), sc.GetPos())
 	assertReads(t, sc, 'a')
-	assert.Equal(t, parser.Pos(0, 1), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 1), sc.GetPos())
 
 	sc.StartSnapshot()
 	assertReads(t, sc, 'b')
-	assert.Equal(t, parser.Pos(0, 2), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 2), sc.GetPos())
 
 	sc.StartSnapshot()
 	assertReads(t, sc, 'c')
-	assert.Equal(t, parser.Pos(0, 3), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 3), sc.GetPos())
 
 	sc.StartSnapshot()
 	assertReads(t, sc, 'd')
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 
 	sc.RewindSnapshot()
 	assertReads(t, sc, 'd')
-	assert.Equal(t, parser.Pos(0, 4), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 4), sc.GetPos())
 	assertReads(t, sc, 'e')
-	assert.Equal(t, parser.Pos(0, 5), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 5), sc.GetPos())
 
 	sc.RewindSnapshot()
 	sc.RewindSnapshot()
-	assert.Equal(t, parser.Pos(0, 1), sc.GetPos())
+	assert.Equal(t, textpos.Pos(0, 1), sc.GetPos())
 	assertReads(t, sc, 'b')
 }
 
 func TestRepeatedRetry(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 	sc.StartSnapshot()
 	assertReads(t, sc, 'a')
 	assertReads(t, sc, 'b')
@@ -128,7 +129,7 @@ func TestRepeatedRetry(t *testing.T) {
 }
 
 func TestTwoSnapshotsInTheSamePlace(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 	sc.StartSnapshot()
 	sc.StartSnapshot()
 	assertReads(t, sc, 'a')
@@ -142,7 +143,7 @@ func TestTwoSnapshotsInTheSamePlace(t *testing.T) {
 }
 
 func TestStartingSnapshotWhileReplaying(t *testing.T) {
-	sc := parser.FromString("abcdefgh")
+	sc := scanner.FromString("abcdefgh")
 	sc.StartSnapshot()
 	assertReads(t, sc, 'a')
 	assertReads(t, sc, 'b')

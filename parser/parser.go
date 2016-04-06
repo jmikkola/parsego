@@ -3,18 +3,19 @@ package parser
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/jmikkola/parsego/parser/result"
+	"github.com/jmikkola/parsego/parser/scanner"
+	"github.com/jmikkola/parsego/parser/textpos"
 )
 
 // Parser defines the interface implemented by all combinable parsers.
 type Parser interface {
-	Parse(sc Scanner) ParseResult
+	Parse(sc scanner.Scanner) result.ParseResult
 }
 
-func fail(at TextPos, format string, a ...interface{}) ParseResult {
-	return &FailedResult{
-		err:       fmt.Errorf(format, a...),
-		textRange: TextRange{at, at},
-	}
+func fail(at textpos.TextPos, format string, a ...interface{}) result.ParseResult {
+	return result.Failed(textpos.Single(at), fmt.Errorf(format, a...))
 }
 
 // EOFParser expects just EOF.
@@ -26,15 +27,12 @@ func EOF() Parser {
 }
 
 // Parse parses the input.
-func (p *EOFParser) Parse(sc Scanner) ParseResult {
+func (p *EOFParser) Parse(sc scanner.Scanner) result.ParseResult {
 	r, err := sc.Read()
 	if err == nil {
 		return fail(sc.GetPos(), "expected EOF, got %c", r)
 	}
-	return &SuccessResult{
-		textRange: TextRange{sc.GetPos(), sc.GetPos()},
-		result:    "",
-	}
+	return result.Success(textpos.Single(sc.GetPos()), "")
 }
 
 // CharRangeParser parses any single character in a range, inclusive.
@@ -55,7 +53,7 @@ func CharRange(min, max rune) Parser {
 }
 
 // Parse parses the input.
-func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
+func (p *CharRangeParser) Parse(sc scanner.Scanner) result.ParseResult {
 	start := sc.GetPos()
 	r, err := sc.Read()
 	if err != nil {
@@ -64,10 +62,9 @@ func (p *CharRangeParser) Parse(sc Scanner) ParseResult {
 	if r < p.min || r > p.max {
 		return fail(sc.GetPos(), "expected a character in the range, got error %c", r)
 	}
-	return &SuccessResult{
-		textRange: TextRange{start, sc.GetPos()},
-		result:    string(r),
-	}
+	return result.Success(
+		textpos.Range(start, sc.GetPos()),
+		string(r))
 }
 
 // TokenParser works like a series of CharRangeParsers, but is more
@@ -82,7 +79,7 @@ func Token(token string) Parser {
 }
 
 // Parse parses the input.
-func (p *TokenParser) Parse(sc Scanner) ParseResult {
+func (p *TokenParser) Parse(sc scanner.Scanner) result.ParseResult {
 	start := sc.GetPos()
 	seen := []rune{}
 	for _, c := range p.token {
@@ -95,10 +92,9 @@ func (p *TokenParser) Parse(sc Scanner) ParseResult {
 			return fail(sc.GetPos(), "expected '%s', got '%s'", p.token, string(seen))
 		}
 	}
-	return &SuccessResult{
-		textRange: TextRange{start, sc.GetPos()},
-		result:    string(seen),
-	}
+	return result.Success(
+		textpos.Range(start, sc.GetPos()),
+		string(seen))
 }
 
 // CharSetParser parses any single character in the set.
@@ -148,7 +144,7 @@ func rarray2rmap(rs []rune) map[rune]struct{} {
 }
 
 // Parse parses the input.
-func (p *CharSetParser) Parse(sc Scanner) ParseResult {
+func (p *CharSetParser) Parse(sc scanner.Scanner) result.ParseResult {
 	start := sc.GetPos()
 	r, err := sc.Read()
 	if err != nil {
@@ -157,10 +153,7 @@ func (p *CharSetParser) Parse(sc Scanner) ParseResult {
 	if _, ok := p.allowed[r]; ok == p.invert {
 		return fail(sc.GetPos(), "expected a character in the set, got error %c", r)
 	}
-	return &SuccessResult{
-		textRange: TextRange{start, sc.GetPos()},
-		result:    string(r),
-	}
+	return result.Success(textpos.Range(start, sc.GetPos()), string(r))
 }
 
 // SeqParser combines multiple parsers in sequence.
@@ -175,9 +168,9 @@ func Sequence(parsers ...Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *SeqParser) Parse(sc Scanner) ParseResult {
-	var textRange TextRange
-	textRange.start = sc.GetPos()
+func (p *SeqParser) Parse(sc scanner.Scanner) result.ParseResult {
+	start := sc.GetPos()
+	var end textpos.TextPos
 	results := []interface{}{}
 
 	for _, inner := range p.parsers {
@@ -187,14 +180,11 @@ func (p *SeqParser) Parse(sc Scanner) ParseResult {
 			return innerResult
 		}
 
-		textRange.end = innerResult.TextRange().end
+		end = innerResult.TextRange().End()
 		results = append(results, innerResult.Result())
 	}
 
-	return &SuccessResult{
-		textRange: textRange,
-		result:    cleanupResult(results),
-	}
+	return result.Success(textpos.Range(start, end), cleanupResult(results))
 }
 
 func cleanupResult(results []interface{}) interface{} {
@@ -230,13 +220,12 @@ func ParseWith(p Parser, fn func(interface{}) interface{}) Parser {
 }
 
 // Parse parses the input.
-func (p *Wrapper) Parse(sc Scanner) ParseResult {
+func (p *Wrapper) Parse(sc scanner.Scanner) result.ParseResult {
 	innerResult := p.inner.Parse(sc)
 	if innerResult.Matched() {
-		return &SuccessResult{
-			textRange: innerResult.TextRange(),
-			result:    p.fn(innerResult.Result()),
-		}
+		return result.Success(
+			innerResult.TextRange(),
+			p.fn(innerResult.Result()))
 	}
 	return innerResult
 }
@@ -254,7 +243,7 @@ func Maybe(inner Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *MaybeParser) Parse(sc Scanner) ParseResult {
+func (p *MaybeParser) Parse(sc scanner.Scanner) result.ParseResult {
 	sc.StartSnapshot()
 
 	innerResult := p.inner.Parse(sc)
@@ -264,11 +253,7 @@ func (p *MaybeParser) Parse(sc Scanner) ParseResult {
 	}
 
 	sc.RewindSnapshot()
-	start := sc.GetPos()
-	return &SuccessResult{
-		textRange: TextRange{start, start},
-		result:    "",
-	}
+	return result.Success(textpos.Single(sc.GetPos()), "")
 }
 
 // ManyParser Matches 0+ occurrences
@@ -290,9 +275,8 @@ func Many(inner Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *ManyParser) Parse(sc Scanner) ParseResult {
-	var textRange TextRange
-	textRange.start = sc.GetPos()
+func (p *ManyParser) Parse(sc scanner.Scanner) result.ParseResult {
+	start := sc.GetPos()
 	results := []interface{}{}
 
 	for true {
@@ -315,11 +299,7 @@ func (p *ManyParser) Parse(sc Scanner) ParseResult {
 		output = results
 	}
 
-	textRange.end = sc.GetPos()
-	return &SuccessResult{
-		textRange: textRange,
-		result:    output,
-	}
+	return result.Success(textpos.Range(start, sc.GetPos()), output)
 }
 
 // OrParser parses at most one of the inner parses.
@@ -334,7 +314,7 @@ func Or(parsers ...Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *OrParser) Parse(sc Scanner) ParseResult {
+func (p *OrParser) Parse(sc scanner.Scanner) result.ParseResult {
 	for _, inner := range p.parsers {
 		sc.StartSnapshot()
 		innerResult := inner.Parse(sc)
@@ -372,11 +352,9 @@ func Map(parsers []Named, fn func(map[string]interface{}) interface{}) Parser {
 }
 
 // Parse parses the input.
-func (p *MapParser) Parse(sc Scanner) ParseResult {
+func (p *MapParser) Parse(sc scanner.Scanner) result.ParseResult {
 	parsed := map[string]interface{}{}
-
-	var textRange TextRange
-	textRange.start = sc.GetPos()
+	start := sc.GetPos()
 
 	for _, named := range p.parsers {
 		innerResult := named.Parser.Parse(sc)
@@ -389,12 +367,7 @@ func (p *MapParser) Parse(sc Scanner) ParseResult {
 		}
 	}
 
-	textRange.end = sc.GetPos()
-
-	return &SuccessResult{
-		textRange: textRange,
-		result:    p.fn(parsed),
-	}
+	return result.Success(textpos.Range(start, sc.GetPos()), p.fn(parsed))
 }
 
 // ParserFn contains a function that lazily constructs the real
@@ -410,7 +383,7 @@ func Lazy(fn func() Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *ParserFn) Parse(sc Scanner) ParseResult {
+func (p *ParserFn) Parse(sc scanner.Scanner) result.ParseResult {
 	actual := p.fn()
 	return actual.Parse(sc)
 }
@@ -427,13 +400,10 @@ func Ignore(inner Parser) Parser {
 }
 
 // Parse parses the input.
-func (p *IgnoreParser) Parse(sc Scanner) ParseResult {
-	result := p.inner.Parse(sc)
-	if result.Matched() {
-		return &SuccessResult{
-			textRange: result.TextRange(),
-			result:    "",
-		}
+func (p *IgnoreParser) Parse(sc scanner.Scanner) result.ParseResult {
+	r := p.inner.Parse(sc)
+	if r.Matched() {
+		return result.Success(r.TextRange(), "")
 	}
-	return result
+	return r
 }
