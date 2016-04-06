@@ -87,3 +87,28 @@ func Whitespace() Parser {
 func Whitespace1() Parser {
 	return Many1(WhitespaceChar())
 }
+
+// ParseAs runs the inner parser, and returns the given value if it
+// was successful.
+func ParseAs(p Parser, value interface{}) Parser {
+	return ParseWith(p, func(_ interface{}) interface{} {
+		return value
+	})
+}
+
+// TokenAs returns the given value if it matches the given token.
+func TokenAs(token string, value interface{}) Parser {
+	return ParseAs(Token(token), value)
+}
+
+// Surround surrounds the inner parser with the left and right
+// parsers, but then returns the value from just the inner parser.
+func Surround(left, inner, right Parser) Parser {
+	return Map([]Named{
+		{"", left},
+		{"inner", inner},
+		{"", right},
+	}, func(m map[string]interface{}) interface{} {
+		return m["inner"]
+	})
+}
