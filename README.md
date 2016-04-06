@@ -1,5 +1,7 @@
 # parsego
 
+[![Build Status](https://travis-ci.org/jmikkola/parsego.svg?branch=master)](https://travis-ci.org/jmikkola/parsego)
+
 A poorly-designed parser combinator in Go.
 
 Example usage:
