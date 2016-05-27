@@ -12,7 +12,7 @@ import (
 func assertReads(t *testing.T, sc scanner.ReadRune, c rune) {
 	r, err := sc.Read()
 	assert.NoError(t, err, "Expected successful read")
-	assert.Equal(t, c, r, "Expected char")
+	assert.Equal(t, string(c), string(r), "Expected char")
 }
 
 func TestRBS(t *testing.T) {
@@ -162,4 +162,27 @@ func TestStartingSnapshotWhileReplaying(t *testing.T) {
 	assertReads(t, sc, 'd')
 	assertReads(t, sc, 'e')
 	assertReads(t, sc, 'f')
+}
+
+func TestBug(t *testing.T) {
+	sc := scanner.FromString("abcdefghi")
+
+	sc.StartSnapshot()
+	assertReads(t, sc, 'a')
+	assertReads(t, sc, 'b')
+	sc.RewindSnapshot()
+
+	sc.StartSnapshot()
+	assertReads(t, sc, 'a')
+	sc.PopSnapshot()
+
+	sc.StartSnapshot()
+	sc.StartSnapshot()
+	assertReads(t, sc, 'b')
+	sc.RewindSnapshot()
+	sc.StartSnapshot()
+	assertReads(t, sc, 'b')
+	sc.RewindSnapshot()
+	sc.StartSnapshot()
+	assertReads(t, sc, 'b')
 }
