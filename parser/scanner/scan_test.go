@@ -15,27 +15,6 @@ func assertReads(t *testing.T, sc scanner.ReadRune, c rune) {
 	assert.Equal(t, string(c), string(r), "Expected char")
 }
 
-func TestRBS(t *testing.T) {
-	sc := scanner.RBSFromString("some text")
-	assertReads(t, sc, 's')
-	assertReads(t, sc, 'o')
-
-	sc.StartBuffer()
-	assert.Equal(t, 0, sc.BufSize())
-	assertReads(t, sc, 'm')
-	assertReads(t, sc, 'e')
-
-	assert.Equal(t, 2, sc.BufSize())
-	assert.Equal(t, 'm', sc.ReadBuffer(0))
-	assert.Equal(t, 'e', sc.ReadBuffer(1))
-
-	sc.DropBuffer()
-	assert.Equal(t, 0, sc.BufSize())
-
-	assertReads(t, sc, ' ')
-	assertReads(t, sc, 't')
-}
-
 func TestSimpleRewind(t *testing.T) {
 	sc := scanner.FromString("abcdefgh")
 

@@ -19,21 +19,24 @@ package parser
 
 import (
 	"io"
+	"io/ioutil"
 
 	"github.com/jmikkola/parsego/parser/scanner"
 )
 
-func parseWith(parser Parser, scanner scanner.Scanner) (interface{}, error) {
-	result := parser.Parse(scanner)
+// ParseString parses the text in a string.
+func ParseString(parser Parser, str string) (interface{}, error) {
+	result := parser.Parse(scanner.FromString(str))
 	return result.Result(), result.Error()
 }
 
 // ParseScanner parses the text from a scanner.
-func ParseScanner(parser Parser, reader io.RuneReader) (interface{}, error) {
-	return parseWith(parser, scanner.FromReader(reader))
-}
-
-// ParseString parses the text in a string.
-func ParseString(parser Parser, str string) (interface{}, error) {
-	return parseWith(parser, scanner.FromString(str))
+// TODO: this currently just reads the whole scanner in to memory
+// instead of reading as the text is parsed.
+func ParseScanner(parser Parser, reader io.Reader) (interface{}, error) {
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	return ParseString(parser, string(bytes))
 }
