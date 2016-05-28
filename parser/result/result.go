@@ -1,6 +1,8 @@
 package result
 
 import (
+	"fmt"
+
 	"github.com/jmikkola/parsego/parser/textpos"
 )
 
@@ -74,5 +76,6 @@ func (r *FailedResult) TextRange() textpos.TextRange {
 
 // Error returns the reason for failing.
 func (r *FailedResult) Error() error {
-	return r.err
+	end := r.TextRange().End()
+	return fmt.Errorf("%v at line %d, col %d", r.err, end.Line(), end.Col())
 }

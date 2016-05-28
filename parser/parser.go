@@ -60,7 +60,9 @@ func (p *CharRangeParser) Parse(sc scanner.Scanner) result.ParseResult {
 		return fail(sc.GetPos(), "expected a character, got error %v", err)
 	}
 	if r < p.min || r > p.max {
-		return fail(sc.GetPos(), "expected a character in the range, got error %c", r)
+		return fail(sc.GetPos(),
+			"expected a character in the range '%c' to '%c', got error %c",
+			p.min, p.max, r)
 	}
 	return result.Success(
 		textpos.Range(start, sc.GetPos()),
