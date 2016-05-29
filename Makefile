@@ -1,3 +1,7 @@
+.PHONY: test
+test: build
+	go test -cover ./...
+
 .PHONY: fmt
 fmt:
 	go fmt ./...
@@ -5,10 +9,6 @@ fmt:
 .PHONY: build
 build:
 	go build ./...
-
-.PHONY: test
-test: build
-	go test -cover ./...
 
 .PHONY: coverage
 coverage: build
