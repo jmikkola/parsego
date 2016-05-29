@@ -1,3 +1,7 @@
+.PHONY: verify
+verify: install_deps
+	go test -cover ./...
+
 .PHONY: test
 test: build
 	go test -cover ./...
