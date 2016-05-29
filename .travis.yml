@@ -1,5 +1,6 @@
 language: go
-
+install:
+  - go get ./...
 go:
   - 1.4
   - 1.5
