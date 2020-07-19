@@ -3,6 +3,8 @@
 
 # parsego
 
+Note: This is somewhat buggy, and is not maintained. Use at your own risk :)
+
 A simple, easy to use parser-combinator written in Golang.
 
 Example usage:
